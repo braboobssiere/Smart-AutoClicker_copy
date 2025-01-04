@@ -17,8 +17,8 @@ jobs:
       uses: actions/setup-java@v4
       with:
         distribution: 'zulu'
-        java-version: '21'
-
+        java-version: '21'    
+        
     - name: Cache Gradle packages
       uses: actions/cache@v3
       with:
@@ -26,12 +26,12 @@ jobs:
         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
         restore-keys: |
           ${{ runner.os }}--
-      
+
     - name: Restore keystore
       run: |
         echo "${{ secrets.RELEASE_KEYSTORE }}" > smartautoclicker.jks.asc
-        gpg --batch --yes --decrypt --passphrase "${{ secrets.RELEASE_KEYSTORE_PASSPHRASE }}" --output smartautoclicker/smartautoclicker.jks smartautoclicker.jks.asc
-
+        gpg --batch --yes --decrypt --passphrase ${{ secrets.RELEASE_KEYSTORE_PASSPHRASE }} --output smartautoclicker/smartautoclicker.jks smartautoclicker.jks.asc
+  
     - name: Build with Gradle
       run: |
         ./gradlew \
