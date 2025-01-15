@@ -66,6 +66,8 @@ internal class PaywallFragment : DialogFragment() {
                 launch { viewModel.dialogState.collect(::updateDialogState) }
             }
         }
+
+        viewModel.loadAdIfNeeded(requireContext())
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -74,7 +76,9 @@ internal class PaywallFragment : DialogFragment() {
                 viewModel.requestTrial()
                 dismiss()
             }
-            buttonWatchAd.setOnClickListener { activity?.let(viewModel::showAd) }
+            buttonWatchAd.setOnClickListener {
+                activity?.let(viewModel::showAd)
+            }
             buttonBuy.setOnClickListener { activity?.let(viewModel::launchPlayStoreBillingFlow) }
         }
 
