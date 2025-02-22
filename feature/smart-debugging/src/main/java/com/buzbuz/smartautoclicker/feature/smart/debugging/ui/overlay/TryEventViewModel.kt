@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Kevin Buzeau
+ * Copyright (C) 2025 Kevin Buzeau
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ class TryElementViewModel @Inject constructor(
     private val detectionRepository: DetectionRepository
 ) : ViewModel() {
 
-    private val triedElement: MutableStateFlow<Element?> = MutableStateFlow(null)
+    private val triedElement: MutableStateFlow<TriedImageEvent?> = MutableStateFlow(null)
 
     private val isPlaying: StateFlow<Boolean> = detectionRepository.detectionState
         .map { it == DetectionState.DETECTING }
@@ -68,59 +68,40 @@ class TryElementViewModel @Inject constructor(
             tryResults.emit(emptyList())
         }
 
-    val displayResults: Flow<ResultsDisplay?> = triedElement.combine(detectionResults) { element, results ->
+    val displayResults: Flow<ImageEventResultsDisplay?> = triedElement.combine(detectionResults) { element, results ->
         if (element == null || results.isEmpty()) return@combine null
 
-        val text = when (element) {
-            is Element.ImageEventTry -> {
-                if (element.imageEvent.conditions.size == 1) {
-                    results.first().confidenceRate.formatConfidenceRate()
-                } else {
-                    val detected = results.fold(0) { acc, detectionResultInfo ->
-                        acc + (if (detectionResultInfo.positive) 1 else 0)
-                    }
-                    "$detected/${element.imageEvent.conditions.size}"
+        val text =
+            if (element.imageEvent.conditions.size == 1) {
+                results.first().confidenceRate.formatConfidenceRate()
+            } else {
+                val detected = results.fold(0) { acc, detectionResultInfo ->
+                    acc + (if (detectionResultInfo.positive) 1 else 0)
                 }
+                "$detected/${element.imageEvent.conditions.size}"
             }
 
-            is Element.ImageConditionTry -> results.first().confidenceRate.formatConfidenceRate()
-        }
 
-        ResultsDisplay(text, results)
+        ImageEventResultsDisplay(text, results)
     }
 
-    fun setTriedElement(scenario: Scenario, element: Any) {
+    fun setTriedElement(scenario: Scenario, imageEvent: ImageEvent) {
         viewModelScope.launch {
-            triedElement.emit(
-                when (element) {
-                    is ImageEvent -> Element.ImageEventTry(scenario, element)
-                    is ImageCondition -> Element.ImageConditionTry(scenario, element)
-                    else -> throw UnsupportedOperationException("Can't try $element")
-                }
-            )
+            triedElement.emit(TriedImageEvent(scenario, imageEvent))
         }
     }
 
     fun startTry(context: Context) {
-        if (isPlaying.value) return
-
         viewModelScope.launch {
+            if (isPlaying.value) return@launch
+
             delay(500)
             triedElement.value?.let { element ->
-
-                when (element) {
-                    is Element.ImageEventTry ->
-                        detectionRepository.tryEvent(context, element.scenario, element.imageEvent) { results ->
-                            tryResults.value = results.getAllResults().mapNotNull { result ->
-                                if (result is ImageConditionResult) result.toDetectionResultInfo()
-                                else null
-                            }
-                        }
-
-                    is Element.ImageConditionTry ->
-                        detectionRepository.tryImageCondition(context, element.scenario, element.imageCondition) { result ->
-                            tryResults.value = listOf(result.toDetectionResultInfo())
-                        }
+                detectionRepository.tryEvent(context, element.scenario, element.imageEvent) { results ->
+                    tryResults.value = results.getAllResults().mapNotNull { result ->
+                        if (result is ImageConditionResult) result.toDetectionResultInfo()
+                        else null
+                    }
                 }
             }
         }
@@ -153,22 +134,12 @@ class TryElementViewModel @Inject constructor(
     }
 }
 
-data class ResultsDisplay(
+data class ImageEventResultsDisplay(
     val resultText: String,
     val detectionResults: List<DetectionResultInfo>,
 )
 
-private sealed class Element {
-
-    abstract val scenario: Scenario
-
-    data class ImageEventTry(
-        override val scenario: Scenario,
-        val imageEvent: ImageEvent,
-    ) : Element()
-
-    data class ImageConditionTry(
-        override val scenario: Scenario,
-        val imageCondition: ImageCondition,
-    ) : Element()
-}
+private data class TriedImageEvent(
+    val scenario: Scenario,
+    val imageEvent: ImageEvent,
+)

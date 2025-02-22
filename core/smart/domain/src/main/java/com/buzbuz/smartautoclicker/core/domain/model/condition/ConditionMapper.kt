@@ -21,6 +21,8 @@ import com.buzbuz.smartautoclicker.core.base.identifier.Identifier
 import com.buzbuz.smartautoclicker.core.database.entity.ConditionEntity
 import com.buzbuz.smartautoclicker.core.database.entity.CounterComparisonOperation
 import com.buzbuz.smartautoclicker.core.database.entity.ConditionType
+import com.buzbuz.smartautoclicker.core.database.entity.CounterOperationValueType
+import com.buzbuz.smartautoclicker.core.domain.model.CounterOperationValue
 
 
 /** @return the entity equivalent of this condition. */
@@ -28,6 +30,7 @@ internal fun ImageCondition.toEntity() = ConditionEntity(
     id = id.databaseId,
     eventId = eventId.databaseId,
     name = name,
+    priority = priority,
     type = ConditionType.ON_IMAGE_DETECTED,
     path = path,
     areaLeft = area.left,
@@ -56,18 +59,25 @@ private fun TriggerCondition.OnBroadcastReceived.toBroadcastReceivedEntity(): Co
         name = name,
         type = ConditionType.ON_BROADCAST_RECEIVED,
         broadcastAction = intentAction,
+        priority = 0,
     )
 
-private fun TriggerCondition.OnCounterCountReached.toCounterReachedEntity(): ConditionEntity =
-    ConditionEntity(
+private fun TriggerCondition.OnCounterCountReached.toCounterReachedEntity(): ConditionEntity {
+    val isNumberValue = counterValue is CounterOperationValue.Number
+
+    return ConditionEntity(
         id = id.databaseId,
         eventId = eventId.databaseId,
         name = name,
         type = ConditionType.ON_COUNTER_REACHED,
         counterName = counterName,
         counterComparisonOperation = comparisonOperation.toEntity(),
-        counterValue = counterValue,
+        counterOperationValueType = if (isNumberValue) CounterOperationValueType.NUMBER else CounterOperationValueType.COUNTER,
+        counterValue = if (isNumberValue) counterValue.value as Int else null,
+        counterOperationCounterName = if (isNumberValue) null else counterValue.value as String,
+        priority = 0,
     )
+}
 
 private fun TriggerCondition.OnTimerReached.toTimerReachedEntity(): ConditionEntity =
     ConditionEntity(
@@ -77,6 +87,7 @@ private fun TriggerCondition.OnTimerReached.toTimerReachedEntity(): ConditionEnt
         type = ConditionType.ON_TIMER_REACHED,
         timerValueMs = durationMs,
         restartWhenReached = restartWhenReached,
+        priority = 0,
     )
 
 
@@ -95,6 +106,7 @@ private fun ConditionEntity.toDomainImageCondition(cleanIds: Boolean = false): I
         id = Identifier(id = id, asTemporary = cleanIds),
         eventId = Identifier(id = eventId, asTemporary = cleanIds),
         name = name,
+        priority = priority,
         path = path!!,
         area = Rect(areaLeft!!, areaTop!!, areaRight!!, areaBottom!!),
         threshold = threshold!!,
@@ -118,7 +130,11 @@ private fun ConditionEntity.toDomainCounterReached(cleanIds: Boolean = false): T
         name = name,
         counterName = counterName!!,
         comparisonOperation = counterComparisonOperation!!.toDomain(),
-        counterValue = counterValue!!,
+        counterValue = CounterOperationValue.getCounterOperationValue(
+            type = counterOperationValueType,
+            numberValue = counterValue,
+            counterName = counterOperationCounterName,
+        ),
     )
 
 

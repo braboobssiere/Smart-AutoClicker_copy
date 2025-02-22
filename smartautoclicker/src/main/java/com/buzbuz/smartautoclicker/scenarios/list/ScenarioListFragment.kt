@@ -37,7 +37,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 
 import com.buzbuz.smartautoclicker.R
-import com.buzbuz.smartautoclicker.core.base.extensions.applySystemBarInsets
+import com.buzbuz.smartautoclicker.core.base.extensions.applySafeContentInsets
 import com.buzbuz.smartautoclicker.databinding.FragmentScenariosBinding
 import com.buzbuz.smartautoclicker.feature.backup.ui.BackupDialogFragment
 import com.buzbuz.smartautoclicker.feature.backup.ui.BackupDialogFragment.Companion.FRAGMENT_TAG_BACKUP_DIALOG
@@ -62,7 +62,7 @@ import kotlinx.coroutines.launch
 class ScenarioListFragment : Fragment() {
 
     interface Listener {
-        fun startScenario(item: ScenarioListUiState.Item)
+        fun startScenario(item: ScenarioListUiState.Item.ScenarioItem)
     }
 
     /** ViewModel providing the scenarios data to the UI. */
@@ -92,6 +92,10 @@ class ScenarioListFragment : Fragment() {
             exportClickListener = ::onExportClicked,
             copyClickedListener = ::showCopyScenarioDialog,
             expandCollapseListener = scenarioListViewModel::expandCollapseItem,
+            onSortTypeClicked = scenarioListViewModel::updateSortType,
+            onSmartChipClicked = scenarioListViewModel::updateSmartVisible,
+            onDumbChipClicked = scenarioListViewModel::updateDumbVisible,
+            onSortOrderClicked = scenarioListViewModel::updateSortOrder,
         )
     }
 
@@ -105,11 +109,17 @@ class ScenarioListFragment : Fragment() {
             add.setOnClickListener { onCreateClicked() }
 
             appBarLayout.statusBarForeground = MaterialShapeDrawable.createWithElevationOverlay(context)
+
             topAppBar.setOnMenuItemClickListener { onMenuItemSelected(it) }
 
-            val fabEndMargin = resources.getDimensionPixelSize(R.dimen.margin_horizontal_default)
-            val fabBottomMargin = resources.getDimensionPixelSize(R.dimen.margin_vertical_default)
-            add.applySystemBarInsets(Rect(0, 0, fabEndMargin, fabBottomMargin))
+            val fabHorizontalMarginInset = resources.getDimensionPixelSize(R.dimen.margin_horizontal_mini)
+            val fabHorizontalMargin = resources.getDimensionPixelSize(R.dimen.margin_horizontal_large)
+            val fabBottomMarginInset = resources.getDimensionPixelSize(R.dimen.margin_vertical_default)
+            val fabBottomMargin = resources.getDimensionPixelSize(R.dimen.margin_vertical_extra_large)
+            add.applySafeContentInsets(
+                marginsIfInset = Rect(fabHorizontalMarginInset, 0, fabHorizontalMarginInset, fabBottomMarginInset),
+                marginIfNot =  Rect(fabHorizontalMargin, 0, fabHorizontalMargin, fabBottomMargin),
+            )
         }
 
         lifecycleScope.launch {
@@ -178,7 +188,9 @@ class ScenarioListFragment : Fragment() {
                                 scenarioListViewModel.setUiState(ScenarioListUiState.Type.SELECTION)
                             }
 
-                            override fun onViewAttachedToWindow(arg0: View) {}
+                            override fun onViewAttachedToWindow(arg0: View) {
+                                scenarioListViewModel.updateSearchQuery("")
+                            }
                         })
                     }
                 }
@@ -200,7 +212,9 @@ class ScenarioListFragment : Fragment() {
                 layoutEmpty.visibility = View.VISIBLE
             } else {
                 list.visibility = View.VISIBLE
-                add.visibility = View.VISIBLE
+                add.visibility =
+                    if (uiState.type == ScenarioListUiState.Type.SELECTION) View.VISIBLE
+                    else View.GONE
                 layoutEmpty.visibility = View.GONE
             }
         }
@@ -230,7 +244,7 @@ class ScenarioListFragment : Fragment() {
      * Called when the user clicks on a scenario.
      * @param scenario the scenario clicked.
      */
-    private fun onStartClicked(scenario: ScenarioListUiState.Item) {
+    private fun onStartClicked(scenario: ScenarioListUiState.Item.ScenarioItem) {
         (requireActivity() as? Listener)?.startScenario(scenario)
     }
 
@@ -258,7 +272,7 @@ class ScenarioListFragment : Fragment() {
      *
      * @param item the scenario to delete.
      */
-    private fun onDeleteClicked(item: ScenarioListUiState.Item) {
+    private fun onDeleteClicked(item: ScenarioListUiState.Item.ScenarioItem) {
         showDialog(MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.dialog_title_delete_scenario)
             .setMessage(resources.getString(R.string.message_delete_scenario, item.displayName))
@@ -288,11 +302,11 @@ class ScenarioListFragment : Fragment() {
         scenarioListViewModel.setUiState(ScenarioListUiState.Type.SELECTION)
     }
 
-    private fun showCopyScenarioDialog(scenarioItem: ScenarioListUiState.Item.Valid) {
+    private fun showCopyScenarioDialog(scenarioItem: ScenarioListUiState.Item.ScenarioItem.Valid) {
         ScenarioCopyDialog
             .newInstance(
                 scenarioId = scenarioItem.getScenarioId(),
-                isSmart = scenarioItem is ScenarioListUiState.Item.Valid.Smart,
+                isSmart = scenarioItem is ScenarioListUiState.Item.ScenarioItem.Valid.Smart,
                 defaultName = scenarioItem.displayName,
             )
             .show(requireActivity().supportFragmentManager, FRAGMENT_TAG_COPY_DIALOG)

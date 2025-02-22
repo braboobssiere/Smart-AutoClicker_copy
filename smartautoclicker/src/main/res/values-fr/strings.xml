@@ -46,6 +46,11 @@
     <string name="menu_item_title_select_all">Tout sélectionner</string>
     <string name="menu_item_title_cancel">Annuler</string>
     <string name="menu_item_title_search">Rechercher</string>
+    <string name="menu_item_title_settings">Settings</string>
+
+    <string name="item_scenario_filter_by_name">Nom</string>
+    <string name="item_scenario_filter_by_recent">Récent</string>
+    <string name="item_scenario_filter_by_favorite">Favoris</string>
 
 
     <!--
@@ -113,6 +118,9 @@
     <!-- Settings Activity  ======================================================================================== -->
 
     <string name="activity_settings_title">Paramètres</string>
+
+    <string name="field_show_scenario_filters_ui_title">Afficher les filtres</string>
+    <string name="field_show_scenario_filters_ui_desc">Afficher ou cacher les filtres sur l\'écran des Scénarios.</string>
 
     <string name="field_legacy_action_ui_title">Legacy Action UI</string>
     <string name="field_legacy_action_ui_desc">Modifie l\'affichage de l\'action par une liste. Utile pour les scénarios complexes.</string>

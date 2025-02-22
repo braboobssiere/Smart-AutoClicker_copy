@@ -25,6 +25,7 @@ import com.buzbuz.smartautoclicker.core.database.entity.EventEntity
 import com.buzbuz.smartautoclicker.core.database.entity.EventToggleEntity
 import com.buzbuz.smartautoclicker.core.database.entity.IntentExtraEntity
 import com.buzbuz.smartautoclicker.core.database.entity.ScenarioEntity
+import com.buzbuz.smartautoclicker.core.database.entity.ScenarioStatsEntity
 import com.buzbuz.smartautoclicker.core.database.migrations.*
 
 import javax.inject.Singleton
@@ -38,6 +39,7 @@ import javax.inject.Singleton
         ConditionEntity::class,
         IntentExtraEntity::class,
         EventToggleEntity::class,
+        ScenarioStatsEntity::class,
     ],
     version = CLICK_DATABASE_VERSION,
     exportSchema = true,
@@ -46,9 +48,11 @@ import javax.inject.Singleton
         AutoMigration (from = 8, to = 9, spec = Migration8to9::class),
         AutoMigration (from = 11, to = 12),
         AutoMigration (from = 13, to = 14),
+        AutoMigration (from = 14, to = 15),
+        AutoMigration (from = 15, to = 16),
     ]
 )
 abstract class ClickDatabase : ScenarioDatabase()
 
 /** Current version of the database. */
-const val CLICK_DATABASE_VERSION = 14
+const val CLICK_DATABASE_VERSION = 16

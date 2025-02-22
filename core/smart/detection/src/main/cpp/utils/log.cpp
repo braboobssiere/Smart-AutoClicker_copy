@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Kevin Buzeau
+ * Copyright (C) 2025 Kevin Buzeau
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,33 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <opencv2/core/types.hpp>
+#include "log.h"
+#include <cstdarg>
 
-namespace smartautoclicker {
-
-    class DetectionResult {
-
-    public:
-        bool isDetected;
-        double centerX;
-        double centerY;
-
-        double minVal;
-        double maxVal;
-        cv::Point minLoc;
-        cv::Point maxLoc;
-
-        void reset() {
-            isDetected = false;
-            centerX = 0;
-            centerY = 0;
-            minVal = 0;
-            maxVal = 0;
-            minLoc.x = 0;
-            minLoc.y = 0;
-            maxLoc.x = 0;
-            maxLoc.y = 0;
-        }
-    };
+void logMessage(int priority, const char* tag, const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    __android_log_vprint(priority, tag, fmt, args);
+    va_end(args);
 }
-

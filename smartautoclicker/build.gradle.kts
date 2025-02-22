@@ -52,8 +52,8 @@ android {
     defaultConfig {
         applicationId = getExtraActualApplicationId()
 
-        versionCode = 61
-        versionName = "3.2.2"
+        versionCode = 62
+        versionName = "3.3.0-beta01"
     }
 
     flavorDimensions += listOf("version")
@@ -95,9 +95,10 @@ if (buildParameters.isBuildForVariant("playStoreRelease")) {
 dependencies {
     implementation(libs.kotlinx.coroutines.core)
 
+    implementation(libs.androidx.appCompat)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
-    implementation(libs.androidx.appCompat)
+    implementation(libs.androidx.datastore)
     implementation(libs.androidx.recyclerView)
     implementation(libs.androidx.fragment.ktx)
 

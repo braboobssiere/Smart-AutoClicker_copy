@@ -23,6 +23,7 @@ import com.buzbuz.smartautoclicker.core.base.identifier.Identifier
 import com.buzbuz.smartautoclicker.core.base.interfaces.normalizePriorities
 import com.buzbuz.smartautoclicker.core.domain.model.AND
 import com.buzbuz.smartautoclicker.core.domain.model.ConditionOperator
+import com.buzbuz.smartautoclicker.core.domain.model.CounterOperationValue
 import com.buzbuz.smartautoclicker.core.domain.model.DetectionType
 import com.buzbuz.smartautoclicker.core.domain.model.EXACT
 import com.buzbuz.smartautoclicker.core.domain.model.action.Action
@@ -51,7 +52,6 @@ internal object ProcessingTestData {
     private const val TEST_DATA_CONDITION_IMAGE_HEIGHT = 50
 
     private const val TEST_DATA_ACTION_PAUSE_DURATION_MS_DEFAULT = 50L
-    const val TEST_DATA_BROADCAST_ACTION = "com.buzbuz.test.broadcast"
 
     private var scenarioIdIndex: Long = 0L
     private var eventIdIndex: Long = 0L
@@ -161,6 +161,7 @@ internal object ProcessingTestData {
             detectionArea = Rect(0, 0, TEST_DATA_SCREEN_IMAGE_WIDTH, TEST_DATA_SCREEN_IMAGE_HEIGHT),
             threshold = 10,              // No impact with mocked detection
             name = "TestImageCondition", // No impact on processor
+            priority = 0,
         )
 
         val mockScreenBitmap = Mockito.mock(Bitmap::class.java)
@@ -198,7 +199,7 @@ internal object ProcessingTestData {
             eventId = eventId,
             counterName = counterName,
             comparisonOperation = operator,
-            counterValue = value,
+            counterValue = CounterOperationValue.Number(value),
             name = "TestCounterCondition", // No impact on processor
         )
 
@@ -221,7 +222,7 @@ internal object ProcessingTestData {
             eventId = eventId,
             counterName = counterName,
             operation = operator,
-            operationValue = value,
+            operationValue = CounterOperationValue.Number(value),
             name = "TestToggleEventAction",
             priority = 0,
         )

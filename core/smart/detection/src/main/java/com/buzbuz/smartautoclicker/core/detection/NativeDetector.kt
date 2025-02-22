@@ -39,16 +39,20 @@ class NativeDetector private constructor() : ImageDetector {
     }
 
     /** The results of the detection. Modified by native code. */
+    @Keep
     private val detectionResult = DetectionResult()
-
-    private val detectionQualityMin: Double = DETECTION_QUALITY_MIN.toDouble()
-    private val detectionQualityMax: Double = DETECTION_QUALITY_MAX.toDouble()
-
     /** Native pointer of the detector object. */
     @Keep
-    private var nativePtr: Long = newDetector()
+    private var nativePtr: Long = -1
+
+    private val detectionQualityMin: Double = DETECTION_QUALITY_MIN.toDouble()
 
     private var isClosed: Boolean = false
+
+    override fun init() {
+        nativePtr = newDetector(detectionResult)
+    }
+
 
     override fun close() {
         if (isClosed) return
@@ -63,7 +67,7 @@ class NativeDetector private constructor() : ImageDetector {
         updateScreenMetrics(
             metricsKey,
             screenBitmap,
-            detectionQuality.coerceIn(detectionQualityMin, detectionQualityMax)
+            detectionQuality.coerceIn(detectionQualityMin, 10000.0),
         )
     }
 
@@ -76,7 +80,7 @@ class NativeDetector private constructor() : ImageDetector {
     override fun detectCondition(conditionBitmap: Bitmap, threshold: Int): DetectionResult {
         if (isClosed) return detectionResult.copy()
 
-        detect(conditionBitmap, threshold, detectionResult)
+        detect(conditionBitmap, threshold)
         return detectionResult.copy()
     }
 
@@ -93,7 +97,7 @@ class NativeDetector private constructor() : ImageDetector {
      *
      * @return the pointer of the native detector object.
      */
-    private external fun newDetector(): Long
+    private external fun newDetector(result: DetectionResult): Long
 
     /**
      * Deletes the native detector.
@@ -122,9 +126,8 @@ class NativeDetector private constructor() : ImageDetector {
      *
      * @param conditionBitmap the condition to detect in the screen.
      * @param threshold the allowed error threshold allowed for the condition.
-     * @param result stores the results on this detection.
      */
-    private external fun detect(conditionBitmap: Bitmap, threshold: Int, result: DetectionResult)
+    private external fun detect(conditionBitmap: Bitmap, threshold: Int)
 
     /**
      * Native method for detecting if the bitmap is at a specific position in the current screen bitmap.
@@ -135,7 +138,6 @@ class NativeDetector private constructor() : ImageDetector {
      * @param width the width of the condition.
      * @param height the height of the condition.
      * @param threshold the allowed error threshold allowed for the condition.
-     * @param result stores the results on this detection.
      */
     private external fun detectAt(
         conditionBitmap: Bitmap,

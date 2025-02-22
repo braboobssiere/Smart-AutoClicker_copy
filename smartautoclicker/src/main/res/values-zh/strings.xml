@@ -44,6 +44,11 @@
     <string name="menu_item_title_select_all">全选</string>
     <string name="menu_item_title_cancel">取消</string>
     <string name="menu_item_title_search">搜索</string>
+    <string name="menu_item_title_settings">设置</string>
+
+    <string name="item_scenario_filter_by_name">名称</string>
+    <string name="item_scenario_filter_by_recent">最近</string>
+    <string name="item_scenario_filter_by_favorite">最爱</string>
 
     <!--
       - Text for items in a list or vertical layout.
@@ -108,6 +113,9 @@
     <!-- Settings Activity  ======================================================================================== -->
 
     <string name="activity_settings_title">设置</string>
+
+    <string name="field_show_scenario_filters_ui_title">显示场景筛选器</string>
+    <string name="field_show_scenario_filters_ui_desc">显示或隐藏场景列表界面中的筛选器。</string>
 
     <string name="field_legacy_action_ui_title">传统动作用户界面</string>
     <string name="field_legacy_action_ui_desc">通过列表更改操作显示。适用于复杂场景。</string>

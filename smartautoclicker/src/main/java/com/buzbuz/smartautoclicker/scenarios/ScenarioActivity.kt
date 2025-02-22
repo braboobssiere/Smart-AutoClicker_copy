@@ -18,9 +18,12 @@ package com.buzbuz.smartautoclicker.scenarios
 
 import android.content.DialogInterface
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
@@ -32,6 +35,7 @@ import com.buzbuz.smartautoclicker.R
 import com.buzbuz.smartautoclicker.scenarios.list.ScenarioListFragment
 import com.buzbuz.smartautoclicker.scenarios.list.model.ScenarioListUiState
 import com.buzbuz.smartautoclicker.core.base.extensions.delayDrawUntil
+import com.buzbuz.smartautoclicker.core.base.extensions.getThemeColor
 import com.buzbuz.smartautoclicker.core.display.recorder.showMediaProjectionWarning
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
 import com.buzbuz.smartautoclicker.core.dumb.domain.model.DumbScenario
@@ -56,9 +60,10 @@ class ScenarioActivity : AppCompatActivity(), ScenarioListFragment.Listener {
     private lateinit var projectionActivityResult: ActivityResultLauncher<Intent>
 
     /** Scenario clicked by the user. */
-    private var requestedItem: ScenarioListUiState.Item? = null
+    private var requestedItem: ScenarioListUiState.Item.ScenarioItem? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scenario)
 
@@ -86,7 +91,7 @@ class ScenarioActivity : AppCompatActivity(), ScenarioListFragment.Listener {
         scenarioViewModel.refreshPurchaseState()
     }
 
-    override fun startScenario(item: ScenarioListUiState.Item) {
+    override fun startScenario(item: ScenarioListUiState.Item.ScenarioItem) {
         requestedItem = item
 
         scenarioViewModel.startPermissionFlowIfNeeded(

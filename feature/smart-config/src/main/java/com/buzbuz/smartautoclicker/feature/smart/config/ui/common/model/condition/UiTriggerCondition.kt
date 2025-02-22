@@ -25,7 +25,7 @@ import com.buzbuz.smartautoclicker.core.ui.utils.formatDuration
 import com.buzbuz.smartautoclicker.feature.smart.config.R
 
 
-data class UiTriggerCondition internal constructor (
+data class UiTriggerCondition(
     override val condition: TriggerCondition,
     override val name: String,
     override val haveError: Boolean,
@@ -61,7 +61,7 @@ private fun TriggerCondition.getTriggerConditionDescription(context: Context): S
             R.string.item_counter_reached_details,
             counterName,
             getComparisonOperationDisplayName(context),
-            counterValue,
+            counterValue.value.toString(),
         )
 
         is TriggerCondition.OnTimerReached -> context.getString(

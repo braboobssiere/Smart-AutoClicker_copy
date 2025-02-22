@@ -22,6 +22,7 @@ import android.graphics.Point
 import android.graphics.Rect
 import android.view.View
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 
 import com.buzbuz.smartautoclicker.core.base.di.Dispatcher
 import com.buzbuz.smartautoclicker.core.base.di.HiltCoroutineDispatchers.IO
@@ -48,9 +49,13 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import java.util.Collections
 
 import javax.inject.Inject
 
@@ -68,14 +73,14 @@ class ImageConditionsBriefViewModel @Inject constructor(
         editionRepository.editionState.editedEventImageConditionsState
 
     private val currentFocusItemIndex: MutableStateFlow<Int> = MutableStateFlow(0)
-    private val focusedCondition: Flow<Pair<ImageCondition, Bitmap?>?> =
+    private val focusedCondition: StateFlow<Pair<ImageCondition, Bitmap?>?> =
         combine(currentFocusItemIndex, editedConditions) { focusedIndex, conditions ->
             val conditionList = conditions.value ?: return@combine null
             if (focusedIndex !in conditionList.indices) return@combine null
 
             val condition = conditionList[focusedIndex]
             condition to repository.getConditionBitmap(condition)
-        }.flowOn(ioDispatcher)
+        }.flowOn(ioDispatcher).stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val conditionVisualization: Flow<ImageConditionDescription?> = focusedCondition.map { focusedCondition ->
         focusedCondition?.first?.toItemDescription(displayConfigManager.displayConfig.sizePx, focusedCondition.second)
@@ -120,6 +125,33 @@ class ImageConditionsBriefViewModel @Inject constructor(
     fun upsertEditedCondition() = editionRepository.upsertEditedCondition()
     fun removeEditedCondition() = editionRepository.deleteEditedCondition()
     fun dismissEditedCondition() = editionRepository.stopConditionEdition()
+
+    fun updateConditionThreshold(newThreshold: Int) {
+        val condition = focusedCondition.value?.first ?: return
+        if (condition.threshold == newThreshold) return
+
+        editionRepository.apply {
+            startConditionEdition(condition)
+            updateEditedCondition(condition.copy(threshold = newThreshold))
+            upsertEditedCondition()
+            stopConditionEdition()
+        }
+    }
+
+    fun swapConditions(i: Int, j: Int) {
+        val imageConditions = editionRepository.editionState.getEditedEventConditions<ImageCondition>()?.toMutableList() ?: return
+        Collections.swap(imageConditions, i, j)
+
+        editionRepository.updateImageConditionsOrder(imageConditions)
+    }
+
+    fun moveConditions(from: Int, to: Int) {
+        val imageConditions = editionRepository.editionState.getEditedEventConditions<ImageCondition>()?.toMutableList() ?: return
+        val movedAction = imageConditions.removeAt(from)
+        imageConditions.add(to, movedAction)
+
+        editionRepository.updateImageConditionsOrder(imageConditions)
+    }
 
     fun monitorBriefFirstItemView(briefItemView: View) {
         monitoredViewsManager.attach(

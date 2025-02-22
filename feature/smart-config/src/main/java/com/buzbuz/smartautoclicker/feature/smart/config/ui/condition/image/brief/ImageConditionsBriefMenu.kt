@@ -25,9 +25,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 
 import com.buzbuz.smartautoclicker.core.common.overlays.base.viewModels
+import com.buzbuz.smartautoclicker.core.common.overlays.dialog.implementation.MoveToDialog
 import com.buzbuz.smartautoclicker.core.common.overlays.menu.implementation.brief.ItemBrief
 import com.buzbuz.smartautoclicker.core.common.overlays.menu.implementation.brief.ItemBriefMenu
-import com.buzbuz.smartautoclicker.core.common.overlays.menu.implementation.brief.ItemsBriefOverlayViewBinding
 import com.buzbuz.smartautoclicker.core.domain.model.condition.ImageCondition
 import com.buzbuz.smartautoclicker.core.ui.views.itembrief.ItemBriefDescription
 import com.buzbuz.smartautoclicker.feature.smart.config.R
@@ -39,7 +39,7 @@ import com.buzbuz.smartautoclicker.feature.smart.config.ui.condition.OnCondition
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.condition.copy.ConditionCopyDialog
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.condition.image.CaptureMenu
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.condition.image.ImageConditionDialog
-import com.buzbuz.smartautoclicker.feature.smart.debugging.ui.overlay.TryElementOverlayMenu
+import com.buzbuz.smartautoclicker.feature.smart.debugging.ui.overlay.TryImageConditionOverlayMenu
 
 import kotlinx.coroutines.launch
 
@@ -80,11 +80,6 @@ class ImageConditionsBriefMenu(
     override fun onCreateBriefItemViewHolder(parent: ViewGroup, orientation: Int): ImageConditionBriefViewHolder =
         ImageConditionBriefViewHolder(LayoutInflater.from(parent.context), orientation, parent)
 
-
-    override fun onOverlayViewCreated(binding: ItemsBriefOverlayViewBinding) {
-        hideMoveButtons()
-    }
-
     override fun onBriefItemViewBound(index: Int, itemView: View?) {
         if (index != 0) return
 
@@ -111,6 +106,15 @@ class ImageConditionsBriefMenu(
             R.id.btn_add -> showNewCaptureOverlay()
             R.id.btn_copy -> showImageConditionCopyDialog()
         }
+    }
+
+    override fun onMoveItemClicked(from: Int, to: Int) {
+        viewModel.swapConditions(from, to)
+    }
+
+    override fun onItemPositionCardClicked(index: Int, itemCount: Int) {
+        if (itemCount < 2) return
+        showMoveToDialog(index, itemCount)
     }
 
     override fun onItemBriefClicked(index: Int, item: ItemBrief) {
@@ -146,9 +150,12 @@ class ImageConditionsBriefMenu(
         viewModel.getEditedScenario()?.let { scenario ->
             overlayManager.navigateTo(
                 context = context,
-                newOverlay = TryElementOverlayMenu(
-                    scenario,
-                    (getFocusedItemBrief().data as UiImageCondition).condition,
+                newOverlay = TryImageConditionOverlayMenu(
+                    scenario = scenario,
+                    imageCondition = (getFocusedItemBrief().data as UiImageCondition).condition,
+                    onNewThresholdSelected = { threshold ->
+                        viewModel.updateConditionThreshold(threshold)
+                    }
                 ),
                 hideCurrent = true,
             )
@@ -196,6 +203,21 @@ class ImageConditionsBriefMenu(
             context = context,
             newOverlay = ImageConditionDialog(conditionConfigDialogListener),
             hideCurrent = true,
+        )
+    }
+
+    private fun showMoveToDialog(index: Int, itemCount: Int) {
+        overlayManager.navigateTo(
+            context = context,
+            newOverlay = MoveToDialog(
+                theme = R.style.ScenarioConfigTheme,
+                defaultValue = index + 1,
+                itemCount = itemCount,
+                onValueSelected = { value ->
+                    if (value - 1 == index) return@MoveToDialog
+                    viewModel.moveConditions(index, value - 1)
+                }
+            ),
         )
     }
 }

@@ -110,8 +110,12 @@ class DetectionRepository @Inject constructor(
             false
         }
 
-    fun setScenarioId(identifier: Identifier) {
+    fun setScenarioId(identifier: Identifier, markAsUsed: Boolean = false) {
         _scenarioId.value = identifier
+
+        if (markAsUsed) {
+            coroutineScopeIo.launch { scenarioRepository.markAsUsed(identifier) }
+        }
     }
 
     fun setExecutor(androidExecutor: SmartActionExecutor) {
@@ -237,7 +241,5 @@ class DetectionRepository @Inject constructor(
 
 private const val TAG = "DetectionRepository"
 
-/** The maximum detection quality for the algorithm. */
-const val DETECTION_QUALITY_MAX = com.buzbuz.smartautoclicker.core.detection.DETECTION_QUALITY_MAX
 /** The minimum detection quality for the algorithm. */
 const val DETECTION_QUALITY_MIN = com.buzbuz.smartautoclicker.core.detection.DETECTION_QUALITY_MIN

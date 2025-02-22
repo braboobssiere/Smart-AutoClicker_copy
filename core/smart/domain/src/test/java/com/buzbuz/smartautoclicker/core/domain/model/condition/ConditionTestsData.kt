@@ -20,6 +20,8 @@ import android.graphics.Rect
 
 import com.buzbuz.smartautoclicker.core.database.entity.ConditionEntity
 import com.buzbuz.smartautoclicker.core.database.entity.ConditionType
+import com.buzbuz.smartautoclicker.core.database.entity.CounterOperationValueType
+import com.buzbuz.smartautoclicker.core.domain.model.CounterOperationValue
 import com.buzbuz.smartautoclicker.core.domain.model.EXACT
 import com.buzbuz.smartautoclicker.core.domain.model.condition.TriggerCondition.OnCounterCountReached.ComparisonOperation
 import com.buzbuz.smartautoclicker.core.domain.model.event.EventTestsData
@@ -51,18 +53,20 @@ internal object ConditionTestsData {
         id: Long = CONDITION_ID,
         name: String = CONDITION_NAME,
         path: String = CONDITION_PATH,
+        priority: Int = 0,
         area: Rect = Rect(CONDITION_LEFT, CONDITION_TOP, CONDITION_RIGHT, CONDITION_BOTTOM),
         detectionArea: Rect? = null,
         threshold: Int = CONDITION_THRESHOLD,
         detectionType: Int = CONDITION_DETECTION_TYPE,
         shouldBeDetected: Boolean = true,
         eventId: Long
-    ) = ConditionEntity(id, eventId, name, ConditionType.ON_IMAGE_DETECTED, path, area.left, area.top, area.right,
+    ) = ConditionEntity(id, eventId, name, ConditionType.ON_IMAGE_DETECTED, priority, path, area.left, area.top, area.right,
         area.bottom, threshold, detectionType, shouldBeDetected, detectionArea?.left, detectionArea?.top, detectionArea?.right, detectionArea?.bottom)
 
     fun getNewImageCondition(
         id: Long = CONDITION_ID,
         name: String = CONDITION_NAME,
+        priority: Int = 0,
         path: String = CONDITION_PATH,
         area: Rect = Rect(CONDITION_LEFT, CONDITION_TOP, CONDITION_RIGHT, CONDITION_BOTTOM),
         detectionArea: Rect? = null,
@@ -70,14 +74,14 @@ internal object ConditionTestsData {
         detectionType: Int = CONDITION_DETECTION_TYPE,
         shouldBeDetected: Boolean = true,
         eventId: Long
-    ) = ImageCondition(id.asIdentifier(), eventId.asIdentifier(), name, path, area, threshold, detectionType, shouldBeDetected, detectionArea)
+    ) = ImageCondition(id.asIdentifier(), eventId.asIdentifier(), name, priority, path, area, threshold, detectionType, shouldBeDetected, detectionArea)
 
     fun getNewBroadcastReceivedConditionEntity(
         id: Long = CONDITION_ID,
         name: String = CONDITION_NAME,
         broadcastAction: String = CONDITION_BROADCAST_ACTION,
         eventId: Long
-    ) = ConditionEntity(id, eventId, name, ConditionType.ON_BROADCAST_RECEIVED, broadcastAction = broadcastAction)
+    ) = ConditionEntity(id, eventId, name, ConditionType.ON_BROADCAST_RECEIVED, 0, broadcastAction = broadcastAction)
 
     fun getNewBroadcastReceivedCondition(
         id: Long = CONDITION_ID,
@@ -94,7 +98,8 @@ internal object ConditionTestsData {
         counterValue: Int = CONDITION_COUNTER_VALUE,
         eventId: Long
     ) = ConditionEntity(id, eventId, name, ConditionType.ON_COUNTER_REACHED, counterName = counterName,
-        counterComparisonOperation = counterOperator.toEntity(), counterValue = counterValue,
+        counterComparisonOperation = counterOperator.toEntity(), priority = 0, counterValue = counterValue,
+        counterOperationValueType = CounterOperationValueType.NUMBER,
     )
 
     fun getNewCounterReachedCondition(
@@ -104,7 +109,8 @@ internal object ConditionTestsData {
         counterOperator: ComparisonOperation = CONDITION_COUNTER_OPERATION,
         counterValue: Int = CONDITION_COUNTER_VALUE,
         eventId: Long
-    ) = TriggerCondition.OnCounterCountReached(id.asIdentifier(), eventId.asIdentifier(), name, counterName, counterOperator, counterValue)
+    ) = TriggerCondition.OnCounterCountReached(id.asIdentifier(), eventId.asIdentifier(), name, counterName,
+        counterOperator, CounterOperationValue.Number(counterValue))
 
     fun getNewTimerReachedConditionEntity(
         id: Long = CONDITION_ID,
@@ -112,7 +118,7 @@ internal object ConditionTestsData {
         timerValueMs: Long = CONDITION_TIMER_MS,
         restartWhenReached: Boolean = true,
         eventId: Long
-    ) = ConditionEntity(id, eventId, name, ConditionType.ON_TIMER_REACHED, timerValueMs = timerValueMs, restartWhenReached = restartWhenReached)
+    ) = ConditionEntity(id, eventId, name, ConditionType.ON_TIMER_REACHED, 0, timerValueMs = timerValueMs, restartWhenReached = restartWhenReached)
 
     fun getNewTimerReachedCondition(
         id: Long = CONDITION_ID,
