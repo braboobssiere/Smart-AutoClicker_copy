@@ -1,0 +1,22 @@
+name: Auto-Sync Fork
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # daily sync
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - run: |
+        git remote add upstream https://github.com/Nain57/Smart-AutoClicker.git
+        git fetch upstream
+        git checkout master
+        git rebase upstream/master
+        git push origin master --force
