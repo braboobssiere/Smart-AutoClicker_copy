@@ -1,5 +1,9 @@
 name: Auto-Sync Fork
 
+permissions:
+  contents: write
+  pull-requests: write
+
 on:
   schedule:
     - cron: '0 0 * * *'  # daily sync
@@ -8,9 +12,6 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     
     steps:
       - name: Fork Sync
