@@ -10,11 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     
     steps:
       - name: Fork Sync
         uses: tgymnich/fork-sync@v2.0.10
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           owner: braboobssiere
           base: master
           head: master
