@@ -20,4 +20,5 @@ jobs:
           owner: braboobssiere
           base: master
           head: master
+          repo: Smart-AutoClicker_copy
           merge_method: rebase
