@@ -12,11 +12,10 @@ jobs:
       contents: write
     
     steps:
-    - uses: actions/checkout@v4
-
-    - run: |
-        git remote add upstream https://github.com/Nain57/Smart-AutoClicker.git
-        git fetch upstream
-        git checkout master
-        git rebase upstream/master
-        git push origin master --force
+      - name: Fork Sync
+        uses: tgymnich/fork-sync@v2.0.10
+        with:
+          owner: braboobssiere
+          base: master
+          head: master
+          merge_method: rebase
