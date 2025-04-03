@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Kevin Buzeau
+ * Copyright (C) 2025 Kevin Buzeau
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,20 +15,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "jni/jni_helper.h"
+#include <android/log.h>
+#include <android/bitmap.h>
+#include <jni.h>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <string>
+
+#include "jni/jni.hpp"
+#include "detector/detector.hpp"
 
 using namespace smartautoclicker;
 
 extern "C" {
-
     JNIEXPORT jlong JNICALL Java_com_buzbuz_smartautoclicker_core_detection_NativeDetector_newDetector(
             JNIEnv *env,
-            jobject self,
-            jobject result) {
-
-        auto detector = new Detector();
-        detector->initialize(env, result);
-        return reinterpret_cast<jlong>(detector);
+            jobject self
+    ) {
+        return reinterpret_cast<jlong>(new Detector());
     }
 
     JNIEXPORT void JNICALL Java_com_buzbuz_smartautoclicker_core_detection_NativeDetector_updateScreenMetrics(
@@ -36,26 +39,36 @@ extern "C" {
             jobject self,
             jstring metricsTag,
             jobject screenBitmap,
-            jdouble detectionQuality) {
+            jdouble detectionQuality
+    ) {
+        const char *tag = env->GetStringUTFChars(metricsTag, 0);
 
-        getObject(env, self)->setScreenMetrics(env, metricsTag, screenBitmap, detectionQuality);
+        getDetectorFromJavaRef(env, self)->setScreenMetrics(
+                loadMatFromRGBA8888Bitmap(env, screenBitmap),
+                detectionQuality,
+                tag);
+
+        env->ReleaseStringUTFChars(metricsTag, tag);
     }
 
     JNIEXPORT void JNICALL Java_com_buzbuz_smartautoclicker_core_detection_NativeDetector_setScreenImage(
             JNIEnv *env,
             jobject self,
-            jobject screenBitmap) {
-
-        getObject(env, self)->setScreenImage(env, screenBitmap);
+            jobject screenBitmap
+    ) {
+        getDetectorFromJavaRef(env, self)->setScreenImage(
+                loadMatFromRGBA8888Bitmap(env, screenBitmap));
     }
 
     JNIEXPORT void JNICALL Java_com_buzbuz_smartautoclicker_core_detection_NativeDetector_detect(
             JNIEnv *env,
             jobject self,
             jobject conditionBitmap,
-            jint threshold) {
-
-        getObject(env, self)->detectCondition(env, conditionBitmap, threshold);
+            jint threshold,
+            jobject result
+    ) {
+        setDetectionResult(env, result, getDetectorFromJavaRef(env, self)->detectCondition(
+                loadMatFromRGBA8888Bitmap(env, conditionBitmap), threshold));
     }
 
     JNIEXPORT void JNICALL Java_com_buzbuz_smartautoclicker_core_detection_NativeDetector_detectAt(
@@ -66,17 +79,17 @@ extern "C" {
             jint y,
             jint width,
             jint height,
-            jint threshold) {
-
-        getObject(env, self)->detectCondition(env, conditionBitmap, x, y, width, height, threshold);
+            jint threshold,
+            jobject result
+    ) {
+        setDetectionResult(env, result, getDetectorFromJavaRef(env, self)->detectCondition(
+                loadMatFromRGBA8888Bitmap(env, conditionBitmap), x, y, width, height, threshold));
     }
 
     JNIEXPORT void JNICALL Java_com_buzbuz_smartautoclicker_core_detection_NativeDetector_deleteDetector(
             JNIEnv *env,
-            jobject self) {
-
-        auto detector = getObject(env, self);
-        detector->release(env);
-        delete detector;
+            jobject self
+    ) {
+        delete getDetectorFromJavaRef(env, self);
     }
 }
