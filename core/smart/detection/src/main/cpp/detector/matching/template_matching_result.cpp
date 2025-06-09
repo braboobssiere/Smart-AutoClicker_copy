@@ -16,6 +16,7 @@
  */
 
 #include <opencv2/imgproc/imgproc_c.h>
+#include <opencv2/imgproc/imgproc.hpp>
 #include "template_matching_result.hpp"
 
 using namespace smartautoclicker;
@@ -29,13 +30,22 @@ void TemplateMatchingResult::updateResults(ScalableRoi* detectionArea, cv::Mat* 
     area.setScaled(
             detectionArea->getScaled().x + maxLoc.x,
             detectionArea->getScaled().y + maxLoc.y,
-            condition->cols, condition->rows, scaleRatio);
+            condition->cols, condition->rows, scaleRatio,
+            *detectionArea);
     centerX = area.getFullSize().x + ((int) (area.getFullSize().width / 2));
     centerY = area.getFullSize().y + ((int) (area.getFullSize().height / 2));
 }
 
 void TemplateMatchingResult::markResultAsDetected() {
     detected = true;
+}
+
+void TemplateMatchingResult::invalidateCurrentResult(cv::Mat *matchingResults, const cv::Mat* condition) const {
+    cv::rectangle(
+            *matchingResults,
+            cv::Rect(maxLoc.x, maxLoc.y,  condition->cols,condition->rows),
+            cv::Scalar(0),
+            CV_FILLED);
 }
 
 void TemplateMatchingResult::reset() {

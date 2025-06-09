@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Kevin Buzeau
+ * Copyright (C) 2025 Kevin Buzeau
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,35 +17,68 @@
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include "scalable_roi.hpp"
+#include "../logs/log.h"
 
 using namespace smartautoclicker;
 
 void ScalableRoi::setFullSize(cv::Mat* fullSize, double scaleRatio) {
-    setFullSize(0, 0, fullSize->cols, fullSize->rows, scaleRatio);
+    fullSizeRoi.x = 0;
+    fullSizeRoi.y = 0;
+    fullSizeRoi.width = fullSize->cols;
+    fullSizeRoi.height = fullSize->rows;
+
+    scaledRoi.x = cvRound(fullSizeRoi.x * scaleRatio);
+    scaledRoi.y = cvRound(fullSizeRoi.y * scaleRatio);
+    scaledRoi.width = cvRound(fullSizeRoi.width * scaleRatio);
+    scaledRoi.height = cvRound(fullSizeRoi.height * scaleRatio);
 }
 
-void ScalableRoi::setFullSize(int x, int y, int width, int height, double scaleRatio) {
-    fullSizeRoi.x = x;
-    fullSizeRoi.y = y;
-    fullSizeRoi.width = width;
-    fullSizeRoi.height = height;
+void ScalableRoi::setFullSize(int x, int y, int width, int height, double scaleRatio, const ScalableRoi& container) {
+    fullSizeRoi.x = std::clamp(x, container.getFullSize().x, container.getFullSize().x + container.getFullSize().width);
+    fullSizeRoi.y = std::clamp(y, container.getFullSize().y, container.getFullSize().y + container.getFullSize().height);
+    fullSizeRoi.width = std::clamp(width, 0, container.getFullSize().x + container.getFullSize().width - fullSizeRoi.x);
+    fullSizeRoi.height = std::clamp(height, 0, container.getFullSize().y + container.getFullSize().height - fullSizeRoi.y);
 
-    scaledRoi.x = cvRound(x * scaleRatio);
-    scaledRoi.y = cvRound(y * scaleRatio);
-    scaledRoi.width = std::max(1, cvRound(width * scaleRatio));
-    scaledRoi.height = std::max(1, cvRound(height * scaleRatio));
+    scaledRoi.x = std::clamp(
+            cvRound(x * scaleRatio),
+            container.getScaled().x,
+            container.getScaled().x + container.getScaled().width);
+    scaledRoi.y = std::clamp(
+            cvRound(y * scaleRatio),
+            container.getScaled().y,
+            container.getScaled().y + container.getScaled().height);
+    scaledRoi.width = std::clamp(
+            cvRound(width * scaleRatio),
+            0,
+            container.getScaled().x + container.getScaled().width - scaledRoi.x);
+    scaledRoi.height = std::clamp(
+            cvRound(height * scaleRatio),
+            0,
+            container.getScaled().y + container.getScaled().height - scaledRoi.y);
 }
 
-void ScalableRoi::setScaled(int scaledX, int scaledY, int scaledWidth, int scaledHeight, double scaleRatio) {
-    fullSizeRoi.x = cvRound(scaledX / scaleRatio);
-    fullSizeRoi.y = cvRound(scaledY / scaleRatio);
-    fullSizeRoi.width = cvRound(scaledWidth / scaleRatio);
-    fullSizeRoi.height = cvRound(scaledHeight / scaleRatio);
+void ScalableRoi::setScaled(int scaledX, int scaledY, int scaledWidth, int scaledHeight, double scaleRatio, const ScalableRoi& container) {
+    scaledRoi.x = std::clamp(scaledX, container.getScaled().x, container.getScaled().x + container.getScaled().width);
+    scaledRoi.y = std::clamp(scaledY, container.getScaled().y, container.getScaled().y + container.getScaled().height);
+    scaledRoi.width = std::clamp(scaledWidth, 0, container.getScaled().x + container.getScaled().width - scaledRoi.x);
+    scaledRoi.height = std::clamp(scaledHeight, 0, container.getScaled().y + container.getScaled().height - scaledRoi.y);
 
-    scaledRoi.x = scaledX;
-    scaledRoi.y = scaledY;
-    scaledRoi.width = scaledWidth;
-    scaledRoi.height = scaledHeight;
+    fullSizeRoi.x = std::clamp(
+            cvRound(scaledX / scaleRatio),
+            container.getFullSize().x,
+            container.getFullSize().x + container.getFullSize().width);
+    fullSizeRoi.y = std::clamp(
+            cvRound(scaledY / scaleRatio),
+            container.getFullSize().y,
+            container.getFullSize().y + container.getFullSize().height);
+    fullSizeRoi.width =  std::clamp(
+            cvRound(scaledWidth / scaleRatio),
+            0,
+            container.getFullSize().x + container.getFullSize().width - fullSizeRoi.x);
+    fullSizeRoi.height = std::clamp(
+            cvRound(scaledHeight / scaleRatio),
+            0,
+            container.getFullSize().y + container.getFullSize().height - fullSizeRoi.y);
 }
 
 void ScalableRoi::clear() {
@@ -73,7 +106,7 @@ bool ScalableRoi::containsOrEquals(const ScalableRoi& other) const{
 }
 
 bool ScalableRoi::isBiggerOrEquals(const ScalableRoi& other) const {
-    return isRoiBiggerOrEquals(fullSizeRoi, other.fullSizeRoi) && isRoiBiggerOrEquals(scaledRoi, other.scaledRoi);;
+    return isRoiBiggerOrEquals(fullSizeRoi, other.fullSizeRoi) && isRoiBiggerOrEquals(scaledRoi, other.scaledRoi);
 }
 
 bool ScalableRoi::isRoiContainsOrEquals(const cv::Rect &roi, const cv::Rect &other) {
