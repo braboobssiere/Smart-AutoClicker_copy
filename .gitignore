@@ -10,6 +10,9 @@
 # Java class files
 *.class
 
+# workflow
+.github/
+
 # Generated files
 bin/
 gen/
