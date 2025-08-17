@@ -48,6 +48,7 @@ import com.buzbuz.smartautoclicker.core.database.entity.IntentExtraEntity
 import com.buzbuz.smartautoclicker.core.database.entity.IntentExtraType
 import com.buzbuz.smartautoclicker.core.database.entity.NotificationMessageType
 import com.buzbuz.smartautoclicker.core.database.entity.ScenarioEntity
+import com.buzbuz.smartautoclicker.core.database.entity.SystemActionType
 import com.buzbuz.smartautoclicker.core.database.serialization.Deserializer
 
 import kotlinx.serialization.json.JsonArray
@@ -194,6 +195,7 @@ internal open class CompatDeserializer : Deserializer {
             name = jsonScenario.getString("name") ?: "",
             detectionQuality = detectionQuality,
             randomize = jsonScenario.getBoolean("randomize") ?: false,
+            keepScreenOn = jsonScenario.getBoolean("keepScreenOn") ?: false,
         )
     }
 
@@ -364,6 +366,8 @@ internal open class CompatDeserializer : Deserializer {
             ActionType.TOGGLE_EVENT -> deserializeActionToggleEvent(jsonAction)
             ActionType.CHANGE_COUNTER -> deserializeActionChangeCounter(jsonAction)
             ActionType.NOTIFICATION -> deserializeActionNotification(jsonAction)
+            ActionType.SYSTEM -> deserializeActionSystem(jsonAction)
+            ActionType.TEXT -> deserializeActionSetText(jsonAction)
             null -> null
         }
 
@@ -533,9 +537,9 @@ internal open class CompatDeserializer : Deserializer {
     open fun deserializeActionNotification(jsonNotification: JsonObject): ActionEntity? {
         val id = jsonNotification.getLong("id", true) ?: return null
         val eventId = jsonNotification.getLong("eventId", true) ?: return null
-        val channelImportance = jsonNotification.getInt("notification_importance") ?: return null
+        val channelImportance = jsonNotification.getInt("notificationImportance") ?: return null
         val notificationMessageType = jsonNotification
-            .getEnum<NotificationMessageType>("notification_message_type") ?: return null
+            .getEnum<NotificationMessageType>("notificationMessageType") ?: return null
 
         return ActionEntity(
             id = id,
@@ -545,8 +549,40 @@ internal open class CompatDeserializer : Deserializer {
             type = ActionType.NOTIFICATION,
             notificationImportance = channelImportance,
             notificationMessageType = notificationMessageType,
-            notificationMessageText = jsonNotification.getString("notification_message_text") ?: "",
-            notificationMessageCounterName = jsonNotification.getString("notification_message_counter_name") ?: "",
+            notificationMessageText = jsonNotification.getString("notificationMessageText") ?: "",
+            notificationMessageCounterName = jsonNotification.getString("notificationMessageCounterName") ?: "",
+        )
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
+    open fun deserializeActionSystem(jsonSystem: JsonObject): ActionEntity? {
+        val id = jsonSystem.getLong("id", true) ?: return null
+        val eventId = jsonSystem.getLong("eventId", true) ?: return null
+        val type = jsonSystem.getEnum<SystemActionType>("systemActionType") ?: return null
+
+        return ActionEntity(
+            id = id,
+            eventId = eventId,
+            name = jsonSystem.getString("name") ?: "",
+            priority = jsonSystem.getInt("priority")?.coerceAtLeast(0) ?: 0,
+            type = ActionType.SYSTEM,
+            systemActionType = type,
+        )
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
+    open fun deserializeActionSetText(jsonSetText: JsonObject): ActionEntity? {
+        val id = jsonSetText.getLong("id", true) ?: return null
+        val eventId = jsonSetText.getLong("eventId", true) ?: return null
+
+        return ActionEntity(
+            id = id,
+            eventId = eventId,
+            name = jsonSetText.getString("name") ?: "",
+            priority = jsonSetText.getInt("priority")?.coerceAtLeast(0) ?: 0,
+            type = ActionType.TEXT,
+            textValue = jsonSetText.getString("textValue") ?: "",
+            textValidateInput = jsonSetText.getBoolean("textValidateInput") ?: false,
         )
     }
 

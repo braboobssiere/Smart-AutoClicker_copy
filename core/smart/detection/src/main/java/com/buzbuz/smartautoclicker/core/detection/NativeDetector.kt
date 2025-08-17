@@ -17,8 +17,10 @@
 package com.buzbuz.smartautoclicker.core.detection
 
 import android.graphics.Bitmap
+import android.graphics.Point
 import android.graphics.Rect
 import androidx.annotation.Keep
+import com.buzbuz.smartautoclicker.core.base.extensions.throwWithKeys
 
 /**
  * Native implementation of the image detector.
@@ -46,6 +48,7 @@ class NativeDetector private constructor() : ImageDetector {
     private var nativePtr: Long = -1
 
     private var isClosed: Boolean = false
+    private var screenDimensions: Point = Point(0, 0)
 
     override fun init() {
         nativePtr = newDetector()
@@ -59,10 +62,12 @@ class NativeDetector private constructor() : ImageDetector {
         deleteDetector()
     }
 
-    override fun setScreenBitmap(screenBitmap: Bitmap, metricsTag: String) {
+    override fun setScreenBitmap(screenBitmap: Bitmap, metadata: String) {
         if (isClosed) return
 
-        setScreenImage(screenBitmap, metricsTag)
+        screenDimensions.x = screenBitmap.width
+        screenDimensions.y = screenBitmap.height
+        setScreenImage(screenBitmap, metadata)
     }
 
     override fun detectCondition(
@@ -74,8 +79,21 @@ class NativeDetector private constructor() : ImageDetector {
     ): DetectionResult {
         if (isClosed) return detectionResult.copy()
 
-        detect(conditionBitmap, conditionWidth, conditionHeight, detectionArea.left, detectionArea.top,
-            detectionArea.width(), detectionArea.height(), threshold, detectionResult)
+        try {
+            detect(conditionBitmap, conditionWidth, conditionHeight, detectionArea.left, detectionArea.top,
+                detectionArea.width(), detectionArea.height(), threshold, detectionResult)
+        } catch (ex: Exception) {
+            ex.throwWithKeys(
+                keys = mapOf(
+                    "screenSize" to "${screenDimensions.x}x${screenDimensions.y}",
+                    "originalConditionSize" to "${conditionBitmap.width}x${conditionBitmap.height}",
+                    "conditionSize" to "${conditionWidth}x$conditionHeight",
+                    "detectionArea" to detectionArea.toString(),
+                    "threshold" to threshold.toString(),
+                ),
+            )
+        }
+
         return detectionResult.copy()
     }
 

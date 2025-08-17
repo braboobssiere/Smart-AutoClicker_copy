@@ -18,7 +18,6 @@ package com.buzbuz.smartautoclicker.core.processing.data
 
 import android.content.Context
 import android.content.Intent
-import android.graphics.Point
 import android.media.Image
 import android.media.projection.MediaProjectionManager
 import android.util.Log
@@ -27,10 +26,11 @@ import com.buzbuz.smartautoclicker.core.base.data.AppComponentsProvider
 import com.buzbuz.smartautoclicker.core.base.di.Dispatcher
 import com.buzbuz.smartautoclicker.core.base.di.HiltCoroutineDispatchers.IO
 import com.buzbuz.smartautoclicker.core.bitmaps.BitmapRepository
+import com.buzbuz.smartautoclicker.core.common.actions.AndroidActionExecutor
 import com.buzbuz.smartautoclicker.core.display.recorder.DisplayRecorder
 import com.buzbuz.smartautoclicker.core.detection.ImageDetector
 import com.buzbuz.smartautoclicker.core.detection.NativeDetector
-import com.buzbuz.smartautoclicker.core.domain.model.SmartActionExecutor
+import com.buzbuz.smartautoclicker.core.display.config.DisplayConfigManager
 import com.buzbuz.smartautoclicker.core.domain.model.event.ImageEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
@@ -63,10 +63,12 @@ import javax.inject.Singleton
  */
 @Singleton
 class DetectorEngine @Inject constructor(
-    @Dispatcher(IO) private val ioDispatcher: CoroutineDispatcher,
+    @param:Dispatcher(IO) private val ioDispatcher: CoroutineDispatcher,
+    private val displayConfigManager: DisplayConfigManager,
     private val bitmapRepository: BitmapRepository,
     private val scalingManager: ScalingManager,
     private val displayRecorder: DisplayRecorder,
+    private val actionExecutor: AndroidActionExecutor,
     private val settingsRepository: SettingsRepository,
     private val appComponentsProvider: AppComponentsProvider,
 ) {
@@ -75,8 +77,6 @@ class DetectorEngine @Inject constructor(
     private var scenarioProcessor: ScenarioProcessor? = null
     /** Detect the condition images on the screen image. */
     private var imageDetector: ImageDetector? = null
-    /** The executor for the actions requiring an interaction with Android. */
-    private var androidExecutor: SmartActionExecutor? = null
 
     /** Coroutine scope for the image processing. */
     private var processingScope: CoroutineScope? = null
@@ -84,6 +84,8 @@ class DetectorEngine @Inject constructor(
     private var processingJob: Job? = null
     /** Coroutine job for the cleaning of the detection once stopped. */
     private var processingShutdownJob: Job? = null
+
+    private val screenOrientationListener: (Context) -> Unit = { onScreenOrientationChanged() }
 
     /** Backing property for [state].*/
     private val _state = MutableStateFlow(DetectorState.CREATED)
@@ -110,27 +112,32 @@ class DetectorEngine @Inject constructor(
      * [android.app.Activity.onActivityResult]
      * @param data the data intent provided by the screen capture intent activity result callback
      * [android.app.Activity.onActivityResult]
-     * @param androidExecutor the executor for the actions requiring an interaction with Android.
      * @param onRecordingStopped called when the screen recording is no longer running and a new request for media
      * projection should be done.
      */
     internal fun startScreenRecord(
         resultCode: Int,
         data: Intent,
-        androidExecutor: SmartActionExecutor,
         onRecordingStopped: (() -> Unit)?,
     ) {
         if (_state.value != DetectorState.CREATED) {
             Log.w(TAG, "startScreenRecord: Screen record is already started")
             return
         }
+
+        val displaySize = displayConfigManager.displayConfig.sizePx
+        if (displaySize.x <= 0 || displaySize.y <= 0) {
+            Log.w(TAG, "startScreenRecord: Invalid display size $displaySize")
+            return
+        }
+
         _state.value = DetectorState.TRANSITIONING
 
         Log.i(TAG, "startScreenRecord")
 
-        this.androidExecutor = androidExecutor
         processingScope = CoroutineScope(ioDispatcher)
-        scalingManager.init(onDisplaySizeChanged = ::onDeviceScreenSizeChanged)
+
+        displayConfigManager.addOrientationListener(screenOrientationListener)
 
         processingScope?.launch {
             displayRecorder.apply {
@@ -139,7 +146,7 @@ class DetectorEngine @Inject constructor(
                     this@DetectorEngine.stopScreenRecord()
                     onRecordingStopped?.invoke()
                 }
-                startScreenRecord(scalingManager.scaledScreenSize)
+                startScreenRecord(displaySize)
             }
 
             _state.emit(DetectorState.RECORDING)
@@ -163,8 +170,7 @@ class DetectorEngine @Inject constructor(
         triggerEvents: List<TriggerEvent>,
         progressListener: ScenarioProcessingListener? = null,
     ) {
-        val executor = androidExecutor
-        if (_state.value != DetectorState.RECORDING || executor == null) {
+        if (_state.value != DetectorState.RECORDING) {
             Log.w(TAG, "startDetection: Screen record is not started.")
             return
         }
@@ -183,13 +189,15 @@ class DetectorEngine @Inject constructor(
         processingScope?.launchProcessingJob {
             // Clear image cache and compute scaling info for detection
             bitmapRepository.clearCache()
-            scalingManager.startScaling(
-                quality = scenario.detectionQuality.toDouble(),
-                screenEvents = imageEvents,
-            )
+
 
             // Set the display projection to the scaled size
-            displayRecorder.resizeDisplay(scalingManager.scaledScreenSize)
+            displayRecorder.resizeDisplay(
+                displaySize = scalingManager.startScaling(
+                    quality = scenario.detectionQuality.toDouble(),
+                    screenEvents = imageEvents,
+                )
+            )
 
             // Setup native detector
             imageDetector = detector
@@ -204,12 +212,11 @@ class DetectorEngine @Inject constructor(
                 processingTag = appComponentsProvider.originalAppId,
                 imageDetector = detector,
                 scalingManager = scalingManager,
-                detectionQuality = scenario.detectionQuality,
                 randomize = scenario.randomize,
                 imageEvents = imageEvents,
                 triggerEvents = triggerEvents,
                 bitmapSupplier = bitmapRepository::getImageConditionBitmap,
-                androidExecutor = executor,
+                androidExecutor = actionExecutor,
                 unblockWorkaroundEnabled = settingsRepository.isInputBlockWorkaroundEnabled(),
                 onStopRequested = { stopDetection() },
                 progressListener  = progressListener,
@@ -224,7 +231,7 @@ class DetectorEngine @Inject constructor(
      * Called when the orientation of the screen changes.
      * As we now have different screen metrics, we need to stop and start the virtual display with the correct one.
      */
-    private fun onDeviceScreenSizeChanged(newSize: Point) {
+    private fun onScreenOrientationChanged() {
         if (_state.value != DetectorState.DETECTING && _state.value != DetectorState.RECORDING) return
 
         Log.d(TAG, "onOrientationChanged")
@@ -232,10 +239,13 @@ class DetectorEngine @Inject constructor(
         processingScope?.launch {
             if (_state.value == DetectorState.DETECTING) {
                 processingJob?.cancelAndJoin()
+                detectionProgressListener?.onImageEventProcessingCancelled()
             }
 
-            detectionProgressListener?.onImageEventProcessingCancelled()
-            displayRecorder.resizeDisplay(newSize)
+
+            displayRecorder.resizeDisplay(
+                displaySize = scalingManager.refreshScaling(),
+            )
 
             if (_state.value == DetectorState.DETECTING) {
                 processingScope?.launchProcessingJob {
@@ -272,7 +282,7 @@ class DetectorEngine @Inject constructor(
             detectionProgressListener = null
 
             scalingManager.stopScaling()
-            displayRecorder.resizeDisplay(scalingManager.scaledScreenSize)
+            displayRecorder.resizeDisplay(displayConfigManager.displayConfig.sizePx)
 
             _state.emit(DetectorState.RECORDING)
             processingShutdownJob = null
@@ -301,9 +311,8 @@ class DetectorEngine @Inject constructor(
         processingScope?.launch {
             processingShutdownJob?.join()
 
-            scalingManager.stopScaling()
+            displayConfigManager.removeOrientationListener(screenOrientationListener)
             displayRecorder.stopProjection()
-            androidExecutor = null
             _state.emit(DetectorState.CREATED)
 
             processingScope?.cancel()

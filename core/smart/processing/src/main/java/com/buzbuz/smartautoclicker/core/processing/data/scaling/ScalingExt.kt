@@ -19,8 +19,6 @@ package com.buzbuz.smartautoclicker.core.processing.data.scaling
 
 import android.graphics.Point
 import android.graphics.Rect
-import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.roundToInt
 
 internal fun Point.toArea(): Rect =
@@ -48,8 +46,8 @@ internal fun Rect.scale(scalingRatio: Double): Rect =
 
 internal fun Rect.grow(bounds: Rect, growValue: Int = 1): Rect =
     Rect(
-        max((left - growValue), bounds.left),
-        max((top - growValue), bounds.top),
-        min((right + growValue), bounds.right),
-        min((bottom + growValue), bounds.bottom),
+        (left - growValue).coerceIn(bounds.left, bounds.right),
+        (top - growValue).coerceIn(bounds.top, bounds.bottom),
+        (right + growValue).coerceIn(bounds.left, bounds.right),
+        (bottom + growValue).coerceIn(bounds.top, bounds.bottom),
     )

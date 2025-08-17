@@ -37,8 +37,9 @@ import org.mockito.kotlin.verify
 
 
 internal fun ScalingManager.mockScaling(testCondition: TestImageCondition, detectionArea: Rect? = null) {
-    `when`(getImageConditionScalingInfo(testCondition.imageCondition.id.databaseId)).thenReturn(
+    `when`(getImageConditionScalingInfo(testCondition.imageCondition)).thenReturn(
         ImageConditionScalingInfo(
+            imageCondition = testCondition.imageCondition,
             imageArea = testCondition.imageCondition.area,
             detectionArea = detectionArea ?: testCondition.imageCondition.area,
         )

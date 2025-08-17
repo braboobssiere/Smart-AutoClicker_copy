@@ -30,8 +30,8 @@ import com.buzbuz.smartautoclicker.core.domain.model.AND
 import com.buzbuz.smartautoclicker.core.domain.model.DetectionType
 import com.buzbuz.smartautoclicker.core.domain.model.EXACT
 import com.buzbuz.smartautoclicker.core.base.identifier.Identifier
+import com.buzbuz.smartautoclicker.core.common.actions.AndroidActionExecutor
 import com.buzbuz.smartautoclicker.core.domain.model.OR
-import com.buzbuz.smartautoclicker.core.domain.model.SmartActionExecutor
 import com.buzbuz.smartautoclicker.core.domain.model.WHOLE_SCREEN
 import com.buzbuz.smartautoclicker.core.domain.model.action.Click
 import com.buzbuz.smartautoclicker.core.domain.model.condition.ImageCondition
@@ -60,7 +60,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.Mockito
-import org.mockito.Mockito.any
 import org.mockito.Mockito.anyInt
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
@@ -79,8 +78,6 @@ import org.mockito.Mockito.`when` as mockWhen
 class ScenarioProcessorTests {
 
     private companion object {
-        private const val TEST_DATA_DETECTION_QUALITY = 600.0
-
         private const val TEST_DATA_SCREEN_IMAGE_WIDTH = 800
         private const val TEST_DATA_SCREEN_IMAGE_HEIGHT = 600
 
@@ -120,7 +117,7 @@ class ScenarioProcessorTests {
     @Mock private lateinit var mockScalingManager: ScalingManager
     @Mock private lateinit var mockImageDetector: ImageDetector
     @Mock private lateinit var mockBitmapSupplier: BitmapSupplier
-    @Mock private lateinit var mockAndroidExecutor: SmartActionExecutor
+    @Mock private lateinit var mockAndroidExecutor: AndroidActionExecutor
     @Mock private lateinit var mockEndListener: StopRequestListener
 
     @Mock private lateinit var mockScreenBitmap: Bitmap
@@ -144,8 +141,8 @@ class ScenarioProcessorTests {
 
         val pass = if (isDetected) TEST_DETECTION_OK else TEST_DETECTION_KO
         mockWhen(mockImageDetector.detectCondition(eq(conditionBitmap), anyInt(),anyInt(), anyNotNull(), anyInt())).thenReturn(pass)
-        mockWhen(mockScalingManager.getImageConditionScalingInfo(condition.id.databaseId))
-            .thenReturn(ImageConditionScalingInfo(area, area))
+        mockWhen(mockScalingManager.getImageConditionScalingInfo(condition))
+            .thenReturn(ImageConditionScalingInfo(condition, area, area))
 
         condition
     }
@@ -153,7 +150,7 @@ class ScenarioProcessorTests {
     /** */
     private suspend fun assertActionGesture(expectedDuration: Long) {
         val gestureCaptor = argumentCaptor<GestureDescription>()
-        verify(mockAndroidExecutor).executeGesture(gestureCaptor.capture())
+        verify(mockAndroidExecutor).dispatchGesture(gestureCaptor.capture())
         val gesture = gestureCaptor.lastValue
 
         Assert.assertEquals("Gesture should contains only one stroke", 1, gesture.strokeCount)
@@ -171,7 +168,6 @@ class ScenarioProcessorTests {
         val processor = ScenarioProcessor(
             processingTag = "",
             imageDetector = mockImageDetector,
-            detectionQuality = TEST_DATA_DETECTION_QUALITY.toInt(),
             scalingManager = mockScalingManager,
             randomize = false,
             imageEvents = events,
@@ -224,7 +220,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         verifyNoInteractions(mockBitmapSupplier, mockAndroidExecutor, mockEndListener)
     }
 
@@ -248,7 +244,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         verifyNoInteractions(mockAndroidExecutor, mockEndListener)
     }
 
@@ -272,7 +268,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         assertActionGesture(expectedDuration)
         verifyNoInteractions(mockEndListener)
     }
@@ -297,7 +293,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         assertActionGesture(expectedDuration)
         verifyNoInteractions(mockEndListener)
     }
@@ -321,7 +317,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         verifyNoInteractions(mockAndroidExecutor, mockEndListener)
     }
 
@@ -343,7 +339,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         verifyNoInteractions(mockAndroidExecutor, mockEndListener)
     }
 
@@ -366,7 +362,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         assertActionGesture(expectedDuration)
         verifyNoInteractions(mockEndListener)
     }
@@ -391,7 +387,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         assertActionGesture(expectedDuration)
         verifyNoInteractions(mockEndListener)
     }
@@ -415,7 +411,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         verifyNoInteractions(mockAndroidExecutor, mockEndListener)
     }
 
@@ -455,7 +451,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         verifyNoInteractions(mockAndroidExecutor, mockEndListener)
     }
 
@@ -494,7 +490,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         verifyNoInteractions(mockAndroidExecutor, mockEndListener)
     }
 
@@ -534,7 +530,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         assertActionGesture(expectedDuration)
         verifyNoInteractions(mockEndListener)
     }
@@ -575,7 +571,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         verifyNoInteractions(mockAndroidExecutor, mockEndListener)
     }
 
@@ -615,7 +611,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         assertActionGesture(expectedDuration)
         verifyNoInteractions(mockEndListener)
     }
@@ -658,7 +654,7 @@ class ScenarioProcessorTests {
         scenarioProcessor.process(mockScreenBitmap)
 
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         assertActionGesture(expectedDuration)
         verifyNoInteractions(mockEndListener)
     }
@@ -700,7 +696,7 @@ class ScenarioProcessorTests {
         scenarioProcessor.process(mockScreenBitmap)
 
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         verifyNoInteractions(mockAndroidExecutor, mockEndListener)
     }
 
@@ -740,7 +736,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         verifyNoInteractions(mockAndroidExecutor, mockEndListener)
     }
 
@@ -781,7 +777,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         assertActionGesture(expectedDuration)
         verifyNoInteractions(mockEndListener)
     }
@@ -823,7 +819,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         assertActionGesture(expectedDuration)
         verifyNoInteractions(mockEndListener)
     }
@@ -865,7 +861,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         assertActionGesture(expectedDuration)
         verifyNoInteractions(mockEndListener)
     }
@@ -907,7 +903,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         assertActionGesture(expectedDuration)
         verifyNoInteractions(mockEndListener)
     }
@@ -949,7 +945,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         assertActionGesture(expectedDuration)
         verifyNoInteractions(mockEndListener)
     }
@@ -990,7 +986,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         verifyNoInteractions(mockAndroidExecutor, mockEndListener)
     }
 
@@ -1027,7 +1023,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event1, event2), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         verifyNoInteractions(mockAndroidExecutor, mockEndListener)
     }
 
@@ -1068,7 +1064,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event1, event2), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         assertActionGesture(actionDuration1)
         verifyNoInteractions(mockEndListener)
     }
@@ -1108,7 +1104,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event1, event2), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         assertActionGesture(actionDuration2)
         verifyNoInteractions(mockEndListener)
     }
@@ -1148,7 +1144,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event1, event2), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         assertActionGesture(actionDuration1)
         verifyNoInteractions(mockEndListener)
     }
@@ -1173,7 +1169,7 @@ class ScenarioProcessorTests {
         scenarioProcessor = createNewScenarioProcessor(listOf(event1), emptyList())
         scenarioProcessor.process(mockScreenBitmap)
 
-        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap)
+        verify(mockImageDetector).setScreenBitmap(mockScreenBitmap, "")
         verifyNoInteractions(mockAndroidExecutor, mockEndListener)
     }
 }
