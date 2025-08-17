@@ -48,5 +48,4 @@ jobs:
       with:
         name: smartautoclicker-release
         path: smartautoclicker/build/outputs/
-        retention-days: 7
-    
+        
