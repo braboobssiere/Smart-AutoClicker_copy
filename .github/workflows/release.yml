@@ -57,3 +57,17 @@ jobs:
         name: smartautoclicker-release
         path: smartautoclicker/build/outputs/
         
+    - name: Generate tag 
+      id: prep
+      run: |
+          TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+          TAG="${TIMESTAMP}"
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT 
+
+    - name: Create draft release
+      uses: softprops/action-gh-release@v2.3.2
+      with:
+          tag_name: ${{ steps.prep.outputs.TAG }}
+          name: "Release ${{ steps.prep.outputs.TAG }}"
+          files: |
+            smartautoclicker/build/outputs/**
