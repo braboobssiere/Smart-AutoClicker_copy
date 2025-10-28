@@ -71,3 +71,6 @@ jobs:
           name: "Release ${{ steps.prep.outputs.TAG }}"
           files: |
             smartautoclicker/build/outputs/**
+
+    - name: Cleanup tag
+      run: git push --delete origin "${{ steps.prep.outputs.TAG }}" || true
