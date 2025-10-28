@@ -18,21 +18,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-
-    - name: set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'zulu'
-        java-version: '21'    
         
-    - name: Cache Gradle packages
-      uses: actions/cache@v3
-      with:
-        path: ~/.gradle/caches
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}--
-
     - name: set NDK
       shell: bash
       run: |
