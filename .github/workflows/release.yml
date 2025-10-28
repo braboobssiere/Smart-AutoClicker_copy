@@ -60,7 +60,7 @@ jobs:
           echo "TAG=$TAG" >> $GITHUB_OUTPUT 
 
     - name: Create draft release
-      uses: softprops/action-gh-release@v2.3.2
+      uses: softprops/action-gh-release@v2
       with:
           tag_name: ${{ steps.prep.outputs.TAG }}
           name: "Release ${{ steps.prep.outputs.TAG }}"
